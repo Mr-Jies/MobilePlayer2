@@ -2,6 +2,10 @@ package com.wu.mobileplayer.activity;
 
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
@@ -24,6 +28,8 @@ import androidx.annotation.NonNull;
 import com.wu.mobileplayer.R;
 import com.wu.mobileplayer.utils.Utils;
 
+import java.text.SimpleDateFormat;
+
 /**
  * 系统播放器
  */
@@ -38,6 +44,9 @@ public class SystemVideoPlayer extends Activity implements View.OnClickListener 
 
     private VideoView vv_video;
     private Uri uri;
+
+    //监听电量变化的广播
+    private MyReceiver receiver;
 
     private LinearLayout llTop;
     private TextView tvName;
@@ -59,6 +68,8 @@ public class SystemVideoPlayer extends Activity implements View.OnClickListener 
     /**
      * 1. 设置播放暂停按钮的功能
      * 2. 设置进度和播放时长的TextView
+     * 3. 得到电量--更改电量图标
+     * 4. 设置时间
      */
 
     /**
@@ -145,6 +156,10 @@ public class SystemVideoPlayer extends Activity implements View.OnClickListener 
                     seekbarVideo.setProgress(currentPosition);
                     //更新播放进度的--文本
                     tvCurrentTime.setText(utils.stringForTime(currentPosition));
+
+                    //4.设置系统时间
+                    tvSystemTime.setText(getSystem());
+
                     //3.每秒更新一次
                     removeMessages(PROGRESS);
                     sendEmptyMessageDelayed(PROGRESS,500);
@@ -153,12 +168,18 @@ public class SystemVideoPlayer extends Activity implements View.OnClickListener 
         }
     };
 
+    private String getSystem() {
+        SimpleDateFormat format = new SimpleDateFormat("HH:mm:ss");
+        
+        return null;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ystemvideo);
 
-        utils = new Utils();
+        initData();
 
         findViews();
 
@@ -173,6 +194,43 @@ public class SystemVideoPlayer extends Activity implements View.OnClickListener 
 
         //设置控制面板
 //        vv_video.setMediaController(new MediaController(this));
+    }
+
+    private void initData() {
+        utils = new Utils();
+        //注册电量广播
+        new MyReceiver();
+        IntentFilter intentFiler = new IntentFilter();
+        //当电量变化时 发送广播
+        intentFiler.addAction(Intent.ACTION_BATTERY_CHANGED);
+        //注册广播
+        registerReceiver(receiver,intentFiler);
+    }
+
+    class MyReceiver extends BroadcastReceiver{
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            int level = intent.getIntExtra("level", 0);
+            setBattery(level);
+        }
+    }
+
+    //设置电量变化的图片
+    private void setBattery(int level) {
+        if (level<=0){
+            ivBattery.setImageResource(R.drawable.ic_battery_0);
+        }else if (level<=10){
+            ivBattery.setImageResource(R.drawable.ic_battery_20);
+        }else if (level<=40){
+            ivBattery.setImageResource(R.drawable.ic_battery_40);
+        }else if (level<=60){
+            ivBattery.setImageResource(R.drawable.ic_battery_60);
+        }else if (level<=80){
+            ivBattery.setImageResource(R.drawable.ic_battery_80);
+        }else if (level<=100){
+            ivBattery.setImageResource(R.drawable.ic_battery_100);
+        }
     }
 
     private void setListener() {
@@ -210,7 +268,6 @@ public class SystemVideoPlayer extends Activity implements View.OnClickListener 
          */
         @Override
         public void onStartTrackingTouch(SeekBar seekBar) {
-
         }
 
         /**
@@ -251,5 +308,15 @@ public class SystemVideoPlayer extends Activity implements View.OnClickListener 
         public void onCompletion(MediaPlayer mediaPlayer) {
             Toast.makeText(SystemVideoPlayer.this,"播放完成"+uri,Toast.LENGTH_SHORT).show();
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+
+        //释放资源是先释放子类的再释放父类的
+        if (receiver!=null){
+            unregisterReceiver(receiver);
+        }
+        super.onDestroy();
     }
 }

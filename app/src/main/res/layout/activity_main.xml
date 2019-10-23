@@ -48,7 +48,7 @@
             android:id="@+id/rb_net_audio"
             android:text="网络音乐"
             android:drawableTop="@drawable/rb_net_audio_drawable_selector"
-            style="@style/bottom_tag_style"
+            style=""
             />
         
     </RadioGroup>
